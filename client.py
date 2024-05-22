@@ -1,26 +1,23 @@
-#!python3
-
 import socket
-import tkinter as tk
-from tkinter import simpledialog, messagebox
 import threading
+from customtkinter import *
+from CTkMessagebox import CTkMessagebox
+from PIL import Image
+import time
 
-# Параметри з'єднання
+
 HOST = input('Enter server IP: ')
 PORT = 8888
 
-# Ініціалізація клієнтського сокету
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((HOST, PORT))
 
-# Створення графічного інтерфейсу
-root = tk.Tk()
-root.title("Tic-Tac-Toe Game")
-root.resizable(False, False)
+app = CTk()
+app.geometry('540x725')
+app.title('Tic-Tac-Toe Game')
+app.resizable(False, False)
 
-player_name = simpledialog.askstring("Ім'я гравця", "Введіть своє ім'я:")
-client.sendall(f'name:{player_name}'.encode('utf-8'))
-
+player_name = ""
 player_symbol = 'X'
 opponent_name = ""
 opponent_symbol = 'O'
@@ -28,20 +25,37 @@ is_my_turn = False
 board = ['' for _ in range(9)]
 buttons = []
 
-info_label = tk.Label(root, text="Очікування підключення другого гравця...")
-info_label.grid(row=0, column=0, columnspan=3)
+img = Image.open('./background.png')
 
-player_label = tk.Label(root, text=f"Ваш нік: {player_name} ({player_symbol})")
-player_label.grid(row=1, column=0, columnspan=3)
+logo = CTkImage(dark_image=img, light_image=img, size=(540, 100))
+logo_label = CTkLabel(master=app, text='', image=logo)
+logo_label.grid(row=0, column=0, columnspan=3)
 
-turn_label = tk.Label(root, text="")
-turn_label.grid(row=2, column=0, columnspan=3)
+info_label = CTkLabel(master=app, text='Waiting for second player to connect...')
+info_label.grid(row=1, column=0, columnspan=3)
+
+player_label = CTkLabel(master=app, text=f'Your nickname: {player_name} ({player_symbol})')
+player_label.grid(row=2, column=0, columnspan=3)
+
+turn_label = CTkLabel(master=app, text='')
+turn_label.grid(row=3, column=0, columnspan=3)
+
+dialog = CTkInputDialog(title='Player name', text='Enter your name:')
+player_name = dialog.get_input()
+client.sendall(f'name:{player_name}'.encode('utf-8'))
+
+button_size = 180
+
+for i in range(9):
+	button = CTkButton(master=app, text='', font=('normal', 40), width=button_size, height=button_size, command=lambda i=i: on_button_click(i))
+	button.grid(row=(i // 3) + 4, column=i % 3)
+	buttons.append(button)
 
 def on_button_click(index):
 	global player_symbol, is_my_turn
 	if board[index] == '' and is_my_turn:
 		board[index] = player_symbol
-		buttons[index].config(text=player_symbol)
+		buttons[index].configure(text=player_symbol)
 		client.sendall(f"{index}:{player_symbol}".encode('utf-8'))
 		is_my_turn = False
 		update_turn_label()
@@ -64,17 +78,18 @@ def check_winner():
 
 def show_winner(winner):
 	if winner == 'Нічия':
-		messagebox.showinfo("Результат", "Гра завершилась внічию!")
+		CTkMessagebox(title="Результат", message="Гра завершилась внічию!")
 	else:
 		winner_name = player_name if winner == player_symbol else opponent_name
-		messagebox.showinfo("Перемога", f"Гравець {winner_name} переміг!")
-	client.sendall('game_over'.encode('utf-8'))
+		CTkMessagebox(title="Перемога", message=f"Гравець {winner_name} переміг!")
+	time.sleep(2)
+	app.destroy()
 
 def update_turn_label():
 	if is_my_turn:
-		turn_label.config(text=f"Ваш хід ({player_symbol})")
+		turn_label.configure(text=f"Ваш хід ({player_symbol})")
 	else:
-		turn_label.config(text=f"Хід {opponent_name} ({opponent_symbol})")
+		turn_label.configure(text=f"Хід {opponent_name} ({opponent_symbol})")
 
 def receive_data():
 	global opponent_name, is_my_turn, player_symbol, opponent_symbol
@@ -89,30 +104,24 @@ def receive_data():
 				player_symbol = 'X' if player_name == name1 else 'O'
 				opponent_symbol = 'O' if player_symbol == 'X' else 'X'
 				is_my_turn = player_symbol == 'X'
-				info_label.config(text=f"{name1} (X) vs {name2} (O)")
-				player_label.config(text=f"Ваш нік: {player_name} ({player_symbol})")
+				info_label.configure(text=f"{name1} (X) vs {name2} (O)")
+				player_label.configure(text=f"Ваш нік: {player_name} ({player_symbol})")
 				update_turn_label()
 			elif data == 'game_over':
-				root.quit()
+				app.destroy()
 			else:
 				index, symbol = data.split(':')
 				index = int(index)
 				board[index] = symbol
-				buttons[index].config(text=symbol)
+				buttons[index].configure(text=symbol)
 				is_my_turn = (symbol != player_symbol)
 				update_turn_label()
 				check_winner()
-		except:
+		except Exception as e:
+			print(f"Error: {e}")
 			break
 
-# Створення кнопок для гри
-for i in range(9):
-	button = tk.Button(root, text='', font=('normal', 40), width=5, height=2, command=lambda i=i: on_button_click(i))
-	button.grid(row=(i//3)+3, column=i%3)
-	buttons.append(button)
-
-# Запуск потоку для отримання даних від сервера
 threading.Thread(target=receive_data).start()
 
-root.mainloop()
+app.mainloop()
 client.close()

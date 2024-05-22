@@ -3,11 +3,9 @@
 import socket
 import threading
 
-# Параметри з'єднання
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 8888
 
-# Ініціалізація сокету
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 server.listen(2)
