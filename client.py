@@ -41,13 +41,13 @@ turn_label = CTkLabel(master=app, text='')
 turn_label.grid(row=3, column=0, columnspan=3)
 
 dialog = CTkInputDialog(title='Player name', text='Enter your name:')
-player_name = dialog.get_input()
+player_name = dialog.get_input().strip()
 client.sendall(f'name:{player_name}'.encode('utf-8'))
 
 button_size = 180
 
 for i in range(9):
-	button = CTkButton(master=app, text='', font=('normal', 40), width=button_size, height=button_size, command=lambda i=i: on_button_click(i))
+	button = CTkButton(master=app, text='', font=('normal', 120), width=button_size, height=button_size, command=lambda i=i: on_button_click(i))
 	button.grid(row=(i // 3) + 4, column=i % 3)
 	buttons.append(button)
 
@@ -101,10 +101,10 @@ def receive_data():
 			if data.startswith('names:'):
 				_, name1, name2 = data.split(':')
 				opponent_name = name2 if player_name == name1 else name1
-				player_symbol = 'X' if player_name == name1 else 'O'
-				opponent_symbol = 'O' if player_symbol == 'X' else 'X'
-				is_my_turn = player_symbol == 'X'
-				info_label.configure(text=f"{name1} (X) vs {name2} (O)")
+				player_symbol = '×' if player_name == name1 else '⚬'
+				opponent_symbol = 'O' if player_symbol == '×' else '×'
+				is_my_turn = player_symbol == '×'
+				info_label.configure(text=f"{name1} (×) vs {name2} (⚬)")
 				player_label.configure(text=f"Ваш нік: {player_name} ({player_symbol})")
 				update_turn_label()
 			elif data == 'game_over':
